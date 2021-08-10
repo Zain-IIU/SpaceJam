@@ -1,0 +1,163 @@
+using System.Collections;
+using System.Collections.Generic;
+using UnityEngine;
+using Photon.Pun;
+using Photon.Realtime;
+using UnityEngine.UI;
+using TMPro;
+public class MultiplayerManager : MonoBehaviourPunCallbacks
+{
+    #region Variables
+    [Header("Panels Section")]
+
+    [SerializeField]
+    GameObject MainPanel;
+    [SerializeField]
+    GameObject CharacterPanel;
+    [SerializeField]
+    GameObject LoadingPanel;
+    [SerializeField]
+    GameObject RoomPanel;
+    [SerializeField]
+    TMP_InputField joinName;
+    [SerializeField]
+    TMP_InputField createName;
+    RoomOptions roomOptions;
+    [Header("SOUND")]
+    [SerializeField]
+    AudioSource Source;
+    [SerializeField]
+    AudioClip buttonPress;
+    #endregion
+
+
+    #region Unity Functions
+    private void Awake()
+    {
+        PhotonNetwork.AutomaticallySyncScene = true;
+    }
+
+    // Start is called before the first frame update
+    void Start()
+    {
+        MainPanel.SetActive(true);
+        CharacterPanel.SetActive(false);
+        LoadingPanel.SetActive(false);
+        RoomPanel.SetActive(false);
+        
+    }
+    #endregion
+
+
+
+    #region public Methods
+    public void onPressPlayButton()
+    {
+        MainPanel.SetActive(false);
+        CharacterPanel.SetActive(true);
+        Source.PlayOneShot(buttonPress);
+    }
+    public void onPressQuitButton()
+    {
+        Source.PlayOneShot(buttonPress);
+        Application.Quit();       
+        
+    }
+    public void returnToMenu()
+    {
+        Source.PlayOneShot(buttonPress);
+        MainPanel.SetActive(true);
+        CharacterPanel.SetActive(false);
+    }
+
+    
+    public void gotoRoomPanel()
+    {
+        Source.PlayOneShot(buttonPress);
+        if (!PhotonNetwork.IsConnected)
+        {
+            PhotonNetwork.ConnectUsingSettings();
+            CharacterPanel.SetActive(false);
+            LoadingPanel.SetActive(true);
+            
+               
+        }
+    }
+   
+
+    public void CreateRoom()
+    {
+        Source.PlayOneShot(buttonPress);
+        roomOptions = new RoomOptions();
+        roomOptions.IsOpen = true;
+        roomOptions.IsVisible = true;
+        roomOptions.MaxPlayers = 20;
+        
+        PhotonNetwork.CreateRoom(createName.text, roomOptions, TypedLobby.Default);
+        if (photonView.IsMine)
+        {
+            PlayerPrefs.SetInt("Index", CharacterPanel.GetComponent<CharacterSelect>().getIndex());
+            Debug.Log(PlayerPrefs.GetInt("Index"));
+        }
+    }
+    public void JoinRoom()
+    {
+        Source.PlayOneShot(buttonPress);
+        PhotonNetwork.JoinRoom(joinName.text);
+        if (photonView.IsMine)
+        {
+            PlayerPrefs.SetInt("Index", CharacterPanel.GetComponent<CharacterSelect>().getIndex());
+            Debug.Log(PlayerPrefs.GetInt("Index"));
+        }
+    }
+    #endregion
+
+
+
+    #region Pun Callbacks
+    public override void OnConnected()
+    {
+        Debug.Log("has Internet Connection");
+    }
+    public override void OnConnectedToMaster()
+    {
+        Debug.Log(PhotonNetwork.NickName + " Connected to Master Server");
+        LoadingPanel.SetActive(false);
+        RoomPanel.SetActive(true);
+
+    }
+    public override void OnJoinedRoom()
+    {
+        Debug.Log(PhotonNetwork.NickName + " Joined the Room " + PhotonNetwork.CurrentRoom.Name);
+        PhotonNetwork.LoadLevel("Game");
+    }
+    public override void OnPlayerEnteredRoom(Player newPlayer)
+    {
+        Debug.Log("Player Enterd the Room");
+    }
+
+    public override void OnPlayerLeftRoom(Player otherPlayer)
+    {
+        Debug.Log(otherPlayer.NickName + " has Left the Room ");
+    }
+    public override void OnLeftRoom()
+    {
+        Debug.Log("Leaving the Room");
+    }
+
+    public override void OnJoinRandomFailed(short returnCode, string message)
+    {
+        base.OnJoinRandomFailed(returnCode, message);
+        Debug.Log(message);
+        CreateRoom(roomOptions);
+    }
+
+
+   
+    void CreateRoom(RoomOptions roomOptions)
+    {
+
+        PhotonNetwork.CreateRoom(createName.text, roomOptions, TypedLobby.Default);
+    }
+    #endregion
+}
